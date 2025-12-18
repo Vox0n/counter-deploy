@@ -1,28 +1,43 @@
-name: 🐳 PWD Simple Deploy
+name: CI & Deploy
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:  # Позволяет запускать вручную
+    branches:
+      - main
 
 jobs:
-  instructions:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: 📝 Generate PWD Instructions
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Ensure known hosts
         run: |
-          echo "## 🚀 Quick Deploy to Play with Docker" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**One-command deployment:**" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "git clone https://github.com/${{ github.repository }}.git && \\" >> $GITHUB_STEP_SUMMARY
-          echo "cd \$(basename https://github.com/${{ github.repository }}.git .git) && \\" >> $GITHUB_STEP_SUMMARY
-          echo "docker-compose up -d" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 After running commands:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Click **OPEN PORT** button above terminal" >> $GITHUB_STEP_SUMMARY
-          echo "2. Enter port: \`8000\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. Click the new **8000** button" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ **Note:** Session lasts 4 hours only!" >> $GITHUB_STEP_SUMMARY
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts  # Не 600 — иначе rsync может не прочитать
+
+      - name: Sync repository to server
+        env:
+          RSYNC_RSH: "ssh -o StrictHostKeyChecking=yes"  # Измените на yes
+        run: |
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            ./ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_PATH }}
+
+      - name: Run docker-compose on server
+        run: |
+          ssh \
+            -o StrictHostKeyChecking=yes \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && \
+             docker-compose pull --ignore-pull-failures || true && \
+             docker-compose up -d --build"
