@@ -1,16 +1,28 @@
-# Упрощённый workflow
-name: PWD Simple Deploy
+name: 🐳 PWD Simple Deploy
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Позволяет запускать вручную
 
 jobs:
   instructions:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "## Quick Deploy to PWD" >> $GITHUB_STEP_SUMMARY
+      - name: 📝 Generate PWD Instructions
+        run: |
+          echo "## 🚀 Quick Deploy to Play with Docker" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**One-command deployment:**" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "git clone https://github.com/${{ github.repository }}.git" >> $GITHUB_STEP_SUMMARY
-          echo "cd $(basename ${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+          echo "git clone https://github.com/${{ github.repository }}.git && \\" >> $GITHUB_STEP_SUMMARY
+          echo "cd \$(basename https://github.com/${{ github.repository }}.git .git) && \\" >> $GITHUB_STEP_SUMMARY
           echo "docker-compose up -d" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 After running commands:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Click **OPEN PORT** button above terminal" >> $GITHUB_STEP_SUMMARY
+          echo "2. Enter port: \`8000\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Click the new **8000** button" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** Session lasts 4 hours only!" >> $GITHUB_STEP_SUMMARY
